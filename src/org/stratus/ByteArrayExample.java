@@ -18,7 +18,7 @@ public class ByteArrayExample {
 
     public static class Map extends MapReduceBase implements Mapper<LongWritable, Text, BytesWritable, IntWritable> {
 
-	private final static IntWritable zero = new IntWritable(0);  // anything for value
+	private final static IntWritable one = new IntWritable(1);  // anything for value
  
 	public void map(LongWritable key, Text value, OutputCollector<BytesWritable, IntWritable> output, Reporter reporter) throws IOException {
 
@@ -33,7 +33,7 @@ public class ByteArrayExample {
 	    }
 
 	    difficulty = new BytesWritable(data);
-	    output.collect(difficulty, zero);           // BytesWritable, IntWritable = 0
+	    output.collect(difficulty, one);           // BytesWritable, IntWritable = 0
 	}
     }
 
