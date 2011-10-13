@@ -1,4 +1,4 @@
-package org.myorg;
+package org.stratus;
  
 import java.io.IOException;
 import java.util.*;
