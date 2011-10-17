@@ -1,14 +1,26 @@
 package org.stratus;
  
 import java.io.IOException;
-import java.util.*;
 import java.security.*; 
-
-import org.apache.hadoop.fs.Path;
+import java.util.*;
 import org.apache.hadoop.conf.*;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapred.*;
 import org.apache.hadoop.util.*;
+
+
+// Hadoop Map-Reduce program for timing Bitcoin generation.  We do
+// NUMBER_OF_RUNS attempts to solve the inverse hash problem, and
+// return the number of milliseconds elapsed.  90% of the run time is
+// taken up by the SHA-256 computations; The overhead of manipulating
+// the data takes the rest. (These last include byte swapping,
+// coversion of byte arrays to a comparable object, etc.)
+//
+// See the accompanying BitMine.Solutions for example test data, from 
+// previously succesful bitcoin mining.
+//
+// Team Stratus.
 
 public class BitMine {
 
@@ -45,7 +57,7 @@ public class BitMine {
 		    { data = doubleSha((MessageDigest) digest.clone(), longToBytes(nonce)); } 
 
 	    	catch (CloneNotSupportedException e) 
-		    { throw new IOException("can't clone prototype digest"); }
+ 		    { throw new IOException("can't clone prototype digest"); }
 
 	    	BytesWritable candidate = new BytesWritable(data);
 
@@ -55,7 +67,6 @@ public class BitMine {
 	    	
 	    } while (nonce < start_nonce + NUMBER_OF_RUNS);
 
-
 	    long elapsed_milliseconds = (new Date()).getTime() - start.getTime();
 
 	    output.collect(new LongWritable(nonce), new IntWritable((int) elapsed_milliseconds));
@@ -63,7 +74,6 @@ public class BitMine {
 	    // System.out.println(String.format("%d hit in %d milliseconds", hits, elapsed_milliseconds));
 	}
     }
-
 
     // Essentially the identity reduction - if we have multiple values, it's an error.  Every map task should be getting its own nonce.
     // Produces the <final-nonce,elapsed-time> pairs for checking performance.
@@ -117,7 +127,7 @@ public class BitMine {
 	return new BytesWritable(hexStringToByteArray(hexstr));
     }
 	
-    // setup a SHA256 object with initial data
+    // Setup a SHA-256 object with initial data (block-header data).  We'll clone this for nonce computations.
 
     private static MessageDigest initializeSha256(String match_data) throws IOException {
 	byte[] data = hexStringToByteArray(match_data);
@@ -133,7 +143,7 @@ public class BitMine {
     }
 	
 
-    // Convert a long to an array of bytes.
+    // Convert a long to an array of bytes.  TODO: this seems expensive, is there a faster way?
 
     private static byte[] longToBytes(long number) {
 	int len;
@@ -141,8 +151,7 @@ public class BitMine {
 	if (number == 0) {
 	    len = 1;
 	} else {
-	    // get number of places base 16
-	    len = (int) Math.ceil(Math.log10(number) / Math.log10(256) + 0.000000001);
+	    len = (int) Math.ceil(Math.log10(number) / Math.log10(256) + 0.000000001);    // get number of places base 256
 	}
 
 	byte[] data = new byte[len];
@@ -157,7 +166,7 @@ public class BitMine {
     // Add final data to the SHA-256 object, then perform a second SHA-256 and
     // return the swapped bytes from the completed digest.
 	
-    public static byte[] doubleSha(MessageDigest md, byte[] ba) {
+    private static byte[] doubleSha(MessageDigest md, byte[] ba) {
     	
 	md.update(ba);
 	byte [] digest = md.digest();			
@@ -168,7 +177,7 @@ public class BitMine {
 	
     // Dump array of bytes, for debugging
 	        	
-    public static String dumpByteArray(byte[] ba) {
+    private static String dumpByteArray(byte[] ba) {
 
 	StringBuffer sb = new StringBuffer();
 	for (int i = 0; i < ba.length; i++) {
@@ -178,9 +187,9 @@ public class BitMine {
 	return sb.toString();
     }
 
-    // Swap bytes end for end in place; returns the byte array
+    // Swap bytes end for end in place; returns the original, modified byte array.
 
-    public static byte[] swapBytes(byte[] data) {
+    private static byte[] swapBytes(byte[] data) {
 	int offset = data.length - 1;
 	byte tmp;
     	
