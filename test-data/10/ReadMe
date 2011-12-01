@@ -1,0 +1,60 @@
+
+Copy over sha files to master host:
+
+  scp sha-*.txt <master>:
+
+Each of these files has one line - the same bitcoin mining problem, that is performed by one map task:
+
+  3000000000:010000001dbd981fe6985776b644b173a4d0385ddc1aa2a829688d1e0000000000000000b371c14921b20c2895ed76545c116e0ad70167c5c4952ca201f5d544a26efb53b4f6d74df2b9441a:00000000000044b9f20000000000000000000000000000000000000000000000
+
+The data the BitMineTime program uses is broken out from the above, separated by ':' -
+
+  300000000 
+
+     is the nonce the BitMineTime task will start - all get a different start nonce
+
+  010000001dbd981fe6985776b644b173a4d0385ddc1aa2a829688d1e0000000000000000b371c14921b20c2895ed76545c116e0ad70167c5c4952ca201f5d544a26efb53b4f6d74df2b9441a
+
+     is the digest
+
+  00000000000044b9f20000000000000000000000000000000000000000000000
+
+     is the target difficulty
+
+
+
+The map tasks will run 5,000,000 iterations and write the output, which is timing output - see below:
+
+On the master host, copy the data to HDFS:
+
+  hadoop dfs -mkdir /mnt/user/input
+  hadoop dfs -copyFromLocal sha-*.txt /mnt/user/input/
+
+run the program:
+
+  hadoop jar bitminetime.jar /mnt/user/input /mnt/user/output
+  hadoop dfs -copyToLocal /mnt/user/output/part\* <local-directory>
+
+output will look something like this:
+
+
+    5000000 	    1319095104210:73959
+    1005000000      1319095142804:54185
+    2005000000      1319095104033:68207
+    3005000000      1319095107143:73897
+    4005000000      1319095107453:65235
+    5005000000      1319095104770:68074
+    6005000000      1319095106206:72657
+    7005000000      1319095111774:64182
+    8005000000      1319095150535:100465
+    9005000000      1319095112978:61885
+
+First number is final nonce (should be the initial nonce of the program + 5,000,000)
+Second field is the start time (epoch time in milliseconds) followed by the run time
+in milliseconds.
+
+
+to cleanup for next run:
+
+  hadoop dfs -rmr /mnt/user/output
+  hadoop dfs -rmr /mnt/user/input/\*
