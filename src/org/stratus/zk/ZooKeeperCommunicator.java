@@ -1,3 +1,6 @@
+// Zookeeper configuration support for map-reduce tasks.  The tasks can dynamically adjust
+// thier configuration data.
+
 package org.stratus.zk;
 
 import java.nio.charset.Charset;
@@ -43,9 +46,20 @@ public class ZooKeeperCommunicator extends ConnectionWatcher {
 
     public String getConfig() throws IOException {
 	try {
-	    return new String(zk.getData("/config", false, null), CHARSET);
+	    Stat stat =  zk.exists("/config", false);
+	    if (stat == null) {
+		return null;
+	    } else {
+		return new String(zk.getData("/config", false, null), CHARSET);
+	    }
+
+	    // TODO: catch exception that results in error message:
+	    //    "KeeperErrorCode = NoNode for /config" 
+	    // and return null - there's a race condition in
+	    // the above.
+
 	} catch (Exception e) {
-	    throw new IOException("can't get config from zoo keeper"); 
+	    throw new IOException("can't get config from zoo keeper: " + e.getMessage()); 
 	}	    
     }
 
@@ -58,22 +72,44 @@ public class ZooKeeperCommunicator extends ConnectionWatcher {
 		zk.setData(current_nonce, String.valueOf(nonce).getBytes(CHARSET), -1);
 	    }
 	} catch (Exception e) {
-	    throw new IOException("can't put nonce to zoo keeper"); 
+	    throw new IOException("can't put nonce to zoo keeper: " + e.getMessage()); 
 	}
     }
+
+
+    // we use the ctime and mtime values on /current-nonce to
+    // determine how long it took to get to a solution.  so we use the
+    // trick of deleting and recreating it here. we really should sync
+    // up here, or pay attention to versions: someone may get an old
+    // value.
+
+    public void resetNonce(long nonce) throws IOException {
+	try {
+	    Stat stat = zk.exists(current_nonce, false);
+
+	    if (stat != null) {
+		zk.delete(node_name + "/current-nonce", -1);
+	    }
+	    current_nonce  = zk.create(node_name + "/current-nonce", String.valueOf(nonce).getBytes(CHARSET), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+	} catch (Exception e) {
+	    throw new IOException("can't put solution to zoo keeper: " + e.getMessage()); 
+	}
+    }
+
 
     // if we find a solution, let's post it. a monitor program will
     // grab it and update the /config node with the next problem.
 
-    public void putSolution(String solution) throws IOException {
+    public void putSolution(String bitcoin_solution) throws IOException {
 	try {
 	    Stat stat = zk.exists(solution, false);
 	    if (stat == null) {
 		solution  = zk.create(node_name + "/solution", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 	    }
-	    zk.setData(solution, solution.getBytes(CHARSET), -1);
+	    zk.setData(solution, bitcoin_solution.getBytes(CHARSET), -1);
 	} catch (Exception e) {
-	    throw new IOException("can't put solution to zoo keeper"); 
+	    throw new IOException("can't put solution to zoo keeper: " + e.getMessage()); 
 	}
     }
 
@@ -86,11 +122,17 @@ public class ZooKeeperCommunicator extends ConnectionWatcher {
 	    return zooKeeperCommunicator;
 
 	} catch (Exception e) {
-	    throw new IOException("can't setup communications channel with zoo keeper"); 
+	    throw new IOException("can't setup communications channel with zoo keeper: "+ e.getMessage()); 
 	}
     }
 
 
+
+
+
+    // The main method is for setting up dummy workers. It's only used
+    // for testing the zookeepers setup (the code above, however, is
+    // used by BitMine.java for map-reduce task coordination)
 
     public static void main(String[] args) throws Exception {
 
@@ -99,10 +141,7 @@ public class ZooKeeperCommunicator extends ConnectionWatcher {
 	String host_address  = args[0];
 	String initial_nonce = args[1];
 
-	// ZooKeeperCommunicator zooKeeperCommunicator = new ZooKeeperCommunicator();
-
 	ZooKeeperCommunicator zooKeeperCommunicator = ZooKeeperCommunicator.setUp(host_address, Long.parseLong(initial_nonce));
-
     
 	String config = zooKeeperCommunicator.getConfig();
 
@@ -120,6 +159,11 @@ public class ZooKeeperCommunicator extends ConnectionWatcher {
 	while (true) {
 	    Thread.sleep(sleep_interval);
 	    config = zooKeeperCommunicator.getConfig();
+	    if (config == null) {
+		System.out.println("Config has been removed; exiting");
+		break;
+	    }
+
 	    if (! current_config.equals(config)) {
 		current_config = config;
 		System.out.printf("Config has changed for worker %s to  '%s'\n", zooKeeperCommunicator.node_name, current_config);
