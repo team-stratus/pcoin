@@ -1,0 +1,15 @@
+
+Initialize zookeeper with a problem:
+
+java -jar controller.jar localhost:2181 init 0100000081cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000e320b6c2fffc8d750423db8b1eb942ae710e951ed797f7affc8892b0f1fc122bc7f5d74df2b9441a/00000000000044b9f20000000000000000000000000000000000000000000000
+
+will set up a known problem that has solution 2504433986
+
+java -jar controller.jar localhost:2181 init 010000001dbd981fe6985776b644b173a4d0385ddc1aa2a829688d1e0000000000000000b371c14921b20c2895ed76545c116e0ad70167c5c4952ca201f5d544a26efb53b4f6d74df2b9441a/00000000000044b9f20000000000000000000000000000000000000000000000
+
+has solution: 2165053959 
+
+copy the input files 001, 002 in test to dfs:/user/pcoin/ - these are
+configured to use the zookeeper on localhost:2181 and start nonces
+that will solve the above problems relatively quickly
+

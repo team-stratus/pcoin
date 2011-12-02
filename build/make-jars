@@ -1,0 +1,7 @@
+#!/bin/sh
+
+
+jar -cvmf controller-manifest  controller.jar org
+jar -cvmf bitmine-manifest     bitmine.jar    org
+jar -cvmf master-manifest      master.jar     org
+jar -cvmf zk-manifest          zk.jar         org
