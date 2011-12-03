@@ -153,19 +153,14 @@ public class Controller implements Watcher {
 	System.err.println("usage:");
 	System.err.println(" java Controller host:port subcommand [subcommand args]");
 	System.err.println(" where subcommand is one of 'initialize', 'cleanup', 'shutdown', 'report'");
-	System.err.println("");
-	System.err.println("initialize <string>");
-	System.err.println("  takes one argument, a problem, and stores it to the '/config' znode");
-	System.err.println("");
-	System.err.println("cleanup");
-	System.err.println("  removes completed worker tasks from the children of the '/workers' znode");
-	System.err.println("");
-	System.err.println("shutdown");
-	System.err.println("  removes the '/config' znode, which signals the worker tasks to exit");
-	System.err.println("");
-	System.err.println("report");
-	System.err.println("  lists a summary of the zookeeper directory, including timing information");
-	System.err.println("");
+	System.err.println(" initialize <string>");
+	System.err.println("   takes one argument, a problem, and stores it to the '/config' znode");
+	System.err.println(" cleanup");
+	System.err.println("   removes completed worker tasks from the children of the '/workers' znode");
+	System.err.println(" shutdown");
+	System.err.println("   removes the '/config' znode, which signals the worker tasks to exit");
+	System.err.println(" report");
+	System.err.println("   lists a summary of the zookeeper directory, including timing information");
 	System.exit(-1);
     }
     
@@ -195,15 +190,22 @@ public class Controller implements Watcher {
 	for (String child : children) {
 
 	    path = "/workers/" + child;	    
+	    
+	    String start_nonce = "not available";
+
+	    stat = zk.exists(path + "/initial-nonce", false);
+	    if (stat != null) {
+		start_nonce = new String(zk.getData(path + "/initial-nonce", false, null), CHARSET);
+	    }
+
 	    stat = zk.exists(path + "/active", false);
 
 	    if (stat == null) {
-		System.out.println("  " + path); 
+		System.out.println("  " + path + " (" + start_nonce + ")"); 
 	    } else {
-		System.out.println("* " + path); 
+		System.out.println("* " + path + " (" + start_nonce + ")"); 
 	    }
 	    
-
 	    long initial_nonce = 0;
 	    long final_nonce   = 0;
 	    long millisecs     = 0;

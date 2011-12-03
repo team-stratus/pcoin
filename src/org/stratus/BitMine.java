@@ -137,6 +137,10 @@ public class BitMine {
 	    output.collect(key, new IntWritable(values.next().get()));
 	}
     }
+
+
+    // arguments:
+    // DFS input directory, DFS output directory, number of map tasks
  
     public static void main(String[] args) throws Exception {
 	JobConf conf = new JobConf(BitMine.class);
@@ -144,7 +148,7 @@ public class BitMine {
 	conf.setJobName("BitCoin Miner");
 	conf.setBoolean("mapred.output.compress", false);
 
-	conf.setNumMapTasks(5);
+	conf.setNumMapTasks(Integer.parseInt(args[2]));
 	conf.setNumReduceTasks(1);
  
 	conf.setOutputKeyClass(LongWritable.class);
