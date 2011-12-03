@@ -68,14 +68,15 @@ public class BitMine {
 		interval_iterations = 0;
 		do {
 
-		    // if we've already found a solution, and the problem hasn't changed, then pause
+		    // if we've already found a solution, and the problem hasn't changed, then sleep a second and
+		    // skip the computation (but check for a new configuration later, and reset if we got one).
 
 		    if (solution_found) {
 			try { 
 			    Thread.sleep(1000);
 			    break;
 			} catch (InterruptedException e) {
-			    throw new IOException("Unexpected interrupt in sleep: " + e.getMessage());
+			    throw new IOException("Unexpected interrupt in sleep: " + e.getMessage());  // "Can't happen"
 			}
 		    }
 
@@ -110,13 +111,13 @@ public class BitMine {
 		// we've been assigned a new problem:
 
 		if (! new_block_header.equals(block_header))  {
+
 		    solution_found = false;
-		    block_header = new_block_header;
+		    block_header   = new_block_header;
+
 		    digest = initializeSha256(block_header);
 		    target = hexStringToBytesWritable(new_target_header);
-		    nonce  = start_nonce;
-		    zooKeeperCommunicator.resetNonce(nonce);
-
+		    nonce  = start_nonce;   
 		}
 
 		// update our stats if we're still working on a problem

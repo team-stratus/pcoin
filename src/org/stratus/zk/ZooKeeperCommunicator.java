@@ -76,28 +76,6 @@ public class ZooKeeperCommunicator extends ConnectionWatcher {
 	}
     }
 
-
-    // we use the ctime and mtime values on /current-nonce to
-    // determine how long it took to get to a solution.  so we use the
-    // trick of deleting and recreating it here. we really should sync
-    // up here, or pay attention to versions: someone may get an old
-    // value.
-
-    public void resetNonce(long nonce) throws IOException {
-	try {
-	    Stat stat = zk.exists(current_nonce, false);
-
-	    if (stat != null) {
-		zk.delete(node_name + "/current-nonce", -1);
-	    }
-	    current_nonce  = zk.create(node_name + "/current-nonce", String.valueOf(nonce).getBytes(CHARSET), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-	} catch (Exception e) {
-	    throw new IOException("can't put solution to zoo keeper: " + e.getMessage()); 
-	}
-    }
-
-
     // if we find a solution, let's post it. a monitor program will
     // grab it and update the /config node with the next problem.
 
@@ -113,6 +91,7 @@ public class ZooKeeperCommunicator extends ConnectionWatcher {
 	}
     }
 
+    // connect to a zookeeper server
 
     public static ZooKeeperCommunicator setUp(String host_address, long nonce) throws IOException {
 	ZooKeeperCommunicator zooKeeperCommunicator = new ZooKeeperCommunicator();
@@ -125,10 +104,6 @@ public class ZooKeeperCommunicator extends ConnectionWatcher {
 	    throw new IOException("can't setup communications channel with zoo keeper: "+ e.getMessage()); 
 	}
     }
-
-
-
-
 
     // The main method is for setting up dummy workers. It's only used
     // for testing the zookeepers setup (the code above, however, is
