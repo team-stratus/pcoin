@@ -1,0 +1,1 @@
+export CLASSPATH=/Users/fischer/zookeeper-3.3.3/build/lib/log4j-1.2.15.jar:/Users/fischer/zookeeper-3.3.3/zookeeper-3.3.3.jar:/Users/fischer/Source/hadoop-0.19.0/hadoop-0.19.0-core.jar:.
