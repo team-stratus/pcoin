@@ -259,6 +259,13 @@ public class Controller implements Watcher {
     }
 
 
+    // entry point;  switches to one of the following sub-commands
+    //
+    //    cleanup                   - remove records of exited tasks from zookeeper directory
+    //    initialize data-string    - initialize the bitcoin problem with data-string
+    //    report                    - show some statistics for, and states of, the bitcoin tasks
+    //    shutdown                  - indicate that the tasks should exit
+
     public static void main(String[] args) throws Exception {
 	Controller controller = new Controller();
 

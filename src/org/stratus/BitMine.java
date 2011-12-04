@@ -11,13 +11,12 @@ import org.apache.hadoop.util.*;
 import org.stratus.zk.*;
 
 
-// Hadoop Map-Reduce program for Bitcoin generation.  We do
-// ....
-// ....
-// ....
+// Hadoop Map-Reduce program for Bitcoin generation.  We use a
+// zookeeper directory for getting BitCoin problems, and for storing
+// the generated solutions.
 
 // See the accompanying BitMine.Solutions for example test data, from 
-// previously successful bitcoin generating.
+// previously successful bitcoin generaters.
 //
 // Team Stratus.
 
@@ -40,7 +39,7 @@ public class BitMine {
 	    zooKeeperCommunicator = zooKeeperCommunicator.setUp(host_address, start_nonce);
 	    String config = zooKeeperCommunicator.getConfig();
 
-	    if (config == null) {   // we're shutting down in this cae
+	    if (config == null) {   // we're shutting down in this case
 		return;
 	    }
 	    
@@ -69,7 +68,7 @@ public class BitMine {
 		do {
 
 		    // if we've already found a solution, and the problem hasn't changed, then sleep a second and
-		    // skip the computation (but check for a new configuration later, and reset if we got one).
+		    // skip the computation (but check for a new configuration later, and restart if we got one).
 
 		    if (solution_found) {
 			try { 
@@ -99,7 +98,15 @@ public class BitMine {
 		    
 		} while (interval_iterations < INTERVAL_ITERATIONS);
 	    	
-		// check to see if our problem hash changed, and reset
+		// update our stats if we're still working on a problem
+
+		if (! solution_found) {
+		    zooKeeperCommunicator.putNonce(nonce);
+		}
+
+		// check to see if:
+		//    1) our problem hash changed - then reset and start over
+		//    2) the problem hash was deleted - then exit
 
 		config = zooKeeperCommunicator.getConfig();
 
@@ -120,27 +127,21 @@ public class BitMine {
 		    nonce  = start_nonce;   
 		}
 
-		// update our stats if we're still working on a problem
-
-		if (! solution_found) {
-		    zooKeeperCommunicator.putNonce(nonce);
-		}
 	    }
 	}
     }
 
-    // Essentially the identity reduction - if we have multiple values, it's an error.  Every map task should be getting its own nonce.
-    // Produces the <final-nonce,elapsed-time> pairs for checking performance.
-	
+
+    // reduce is never called; this is just an identity function for certain testing scenerios
+
     public static class Reduce extends MapReduceBase implements Reducer<LongWritable, IntWritable, LongWritable, IntWritable> {
 	public void reduce(LongWritable key, Iterator<IntWritable> values, OutputCollector<LongWritable, IntWritable> output, Reporter reporter) throws IOException {
 	    output.collect(key, new IntWritable(values.next().get()));
 	}
     }
 
-
-    // arguments:
-    // DFS input directory, DFS output directory, number of map tasks
+    // Three arguments:
+    // DFS input directory, DFS output directory, number of map tasks to start
  
     public static void main(String[] args) throws Exception {
 	JobConf conf = new JobConf(BitMine.class);
@@ -148,7 +149,7 @@ public class BitMine {
 	conf.setJobName("BitCoin Miner");
 	conf.setBoolean("mapred.output.compress", false);
 
-	conf.setNumMapTasks(Integer.parseInt(args[2]));
+	conf.setNumMapTasks(Integer.parseInt(args[2]));  // arg 3 - number of tasks (advisory)
 	conf.setNumReduceTasks(1);
  
 	conf.setOutputKeyClass(LongWritable.class);
@@ -161,8 +162,8 @@ public class BitMine {
 	conf.setInputFormat(TextInputFormat.class);
 	conf.setOutputFormat(TextOutputFormat.class);
  
-	FileInputFormat.setInputPaths(conf, new Path(args[0]));
-	FileOutputFormat.setOutputPath(conf, new Path(args[1]));
+	FileInputFormat.setInputPaths(conf, new Path(args[0]));  // arg 1 - hdfs input filesystem 
+	FileOutputFormat.setOutputPath(conf, new Path(args[1])); // arg 2 - hdfs output filesystem (we never use this output)
  
 	JobClient.runJob(conf);
     }
@@ -200,7 +201,6 @@ public class BitMine {
 	return digest;
     }
 	
-
     // Convert a long to an array of bytes.
 
     private static byte[] longToBytes(long number) {
@@ -258,6 +258,4 @@ public class BitMine {
 	}
 	return data;
     }
-	
 }
-
